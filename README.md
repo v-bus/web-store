@@ -16,7 +16,7 @@
 
 ## DOC
 
-see go/doc/index.html folder
+see [doc](https://v-bus.github.io/web-store/docs/)
 
 ## Run
 
