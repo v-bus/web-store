@@ -16,7 +16,7 @@
 
 ## DOC
 
-see [doc](https://v-bus.github.io/web-store/docs/)
+see [doc](https://v-bus.github.io/web-store/)
 
 ## Run
 
