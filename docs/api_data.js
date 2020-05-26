@@ -242,7 +242,7 @@ define({ "api": [
     "examples": [
       {
         "title": "cURL Example  usage:",
-        "content": "curl -X POST -H \"Content-Type: application/json\" -H \"Authorization: Bearer $TOKEN\" -d '{\"url\":\"http://shop.com/ipad\",\"title\":\"IPad\",\"price\":\"12.00\",\"currency\":\"RUB\",\"img_url\":\"http://shop.com/images/ipad.jpg\"}' \"http://api.example.com/product/\"",
+        "content": "curl -X POST -H \"Content-Type: application/json\" -H \"Authorization: Bearer $TOKEN\" -d '{\"url\":\"http://shop.com/ipad\",\"title\":\"IPad\",\"price\":\"12.00\",\"currency\":\"RUB\",\"img_url\":\"http://shop.com/images/ipad.jpg\"}' \"http://api.example.com/product\"",
         "type": "curl"
       }
     ],

@@ -9,11 +9,12 @@ import (
 	"os"
 	"strings"
 	"testing"
-
 	dbproduct "web-store/db"
+	"web-store/defines"
 	"web-store/view_json"
 
 	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/labstack/echo/v4"
 	"github.com/shopspring/decimal"
 	log "github.com/sirupsen/logrus"
@@ -30,7 +31,7 @@ func TestMain(m *testing.M) {
 	log.SetOutput(os.Stdout)
 
 	// Only log the warning severity or above.
-	log.SetLevel(log.InfoLevel)
+	log.SetLevel(defines.Log_level)
 
 	// calling method as a field, instruct the logger
 	log.SetReportCaller(true)
@@ -41,10 +42,35 @@ func TestMain(m *testing.M) {
 	}
 
 	defer db.Close()
-	db.LogMode(false)
+	db.LogMode(defines.Logging)
 	// Migrate the schema
-	if err := db.AutoMigrate(&dbproduct.DBProduct{}).Error; err != nil {
-		log.Fatal(err)
+	log.Trace("Check Users table ...")
+	if db.HasTable(&dbproduct.Users{}) {
+		dbu := dbproduct.Users{}
+		log.Trace("Try create admin admin ...")
+		if err := db.FirstOrCreate(&dbu, dbproduct.Users{User: "admin", Role: "admin"}).Error; err != nil {
+			log.Warn(err)
+		}
+		log.Trace("admin admin was created ...")
+	} else {
+		log.Trace("Try to AutoMigrate Users schema ...")
+		if err := db.AutoMigrate(&dbproduct.Users{}).Error; err != nil {
+			log.Fatal(err)
+		} else {
+			log.Trace("Try to create admin admin Users record in DB ...")
+			if err := db.Create(&dbproduct.Users{User: "admin", Role: "admin"}).Error; err != nil {
+				log.Fatal(err)
+			}
+			log.Trace("admin admin was created success")
+		}
+		log.Trace("Schema Users was migrated success")
+	}
+	if !db.HasTable(&dbproduct.Product{}) {
+		log.Trace("Try to AutoMigrate Products schema...")
+		if err := db.AutoMigrate(&dbproduct.Product{}).Error; err != nil {
+			log.Fatal(err)
+		}
+		log.Trace("Schema Products was created OK")
 	}
 	exitVal := m.Run()
 
@@ -81,7 +107,7 @@ func TestCreateProduct(t *testing.T) {
 func TestFailCreateProduct(t *testing.T) {
 	// Setup
 	e := echo.New()
-	db.DropTable(&dbproduct.DBProduct{})
+	db.DropTable(&dbproduct.Product{})
 	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(""))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 
@@ -94,10 +120,10 @@ func TestFailCreateProduct(t *testing.T) {
 		assert.Equal(t, http.StatusInternalServerError, rec.Code)
 	}
 
-	db.AutoMigrate(&dbproduct.DBProduct{})
+	db.AutoMigrate(&dbproduct.Product{})
 }
 
-// deleteDBRecord to tier down records
+// deleteDBRecord to teardown records
 func deleteDBRecord(t *testing.T, id string) {
 	e := echo.New()
 	req := httptest.NewRequest(http.MethodDelete, "/", bytes.NewReader(nil))
@@ -137,7 +163,7 @@ func TestGetProduct(t *testing.T) {
 	c := e.NewContext(req, rec)
 
 	//find in DB first created product element
-	var dbp []dbproduct.DBProduct
+	var dbp []dbproduct.Product
 	if err := db.First(&dbp).Error; err == nil {
 		c.SetPath("/product")
 		c.SetParamNames("id")
@@ -154,7 +180,7 @@ func TestGetProduct(t *testing.T) {
 			assert.Equal(t, jp.ID, dbp[0].ProductID)
 		}
 	}
-	//tier down
+	//teardown
 	deleteDBRecord(t, dbp[0].ProductID)
 }
 func TestFailGetProduct(t *testing.T) {
@@ -213,7 +239,7 @@ func TestGetAllProducts(t *testing.T) {
 		assert.Equal(t, len(jps), dbdeep)
 	}
 
-	//tier down
+	//teardown
 	for _, v := range jps {
 		deleteDBRecord(t, v.ID)
 	}
@@ -259,7 +285,7 @@ func TestUpdateProduct(t *testing.T) {
 	TestCreateProduct(t)
 
 	//find in DB first created product element
-	var dbp []dbproduct.DBProduct
+	var dbp []dbproduct.Product
 	if err := db.First(&dbp).Error; err == nil {
 		e := echo.New()
 
@@ -313,7 +339,7 @@ func TestUpdateProduct(t *testing.T) {
 			assert.Equal(t, jpIn.Title, jp.Title)
 		}
 	}
-	//tier down
+	//teardown
 	deleteDBRecord(t, dbp[0].ProductID)
 }
 func TestFailUpdateProductNoHeader(t *testing.T) {
@@ -321,7 +347,7 @@ func TestFailUpdateProductNoHeader(t *testing.T) {
 	TestCreateProduct(t)
 
 	//find in DB first created product element
-	var dbp []dbproduct.DBProduct
+	var dbp []dbproduct.Product
 	if err := db.First(&dbp).Error; err == nil {
 		e := echo.New()
 
@@ -376,7 +402,7 @@ func TestFailUpdateProductNoHeader(t *testing.T) {
 			assert.NotEqual(t, jpIn.Title, jp.Title)
 		}
 	}
-	//tier down
+	//teardown
 	deleteDBRecord(t, dbp[0].ProductID)
 }
 func TestFailUpdateProductNoAdmin(t *testing.T) {
@@ -384,7 +410,7 @@ func TestFailUpdateProductNoAdmin(t *testing.T) {
 	TestCreateProduct(t)
 
 	//find in DB first created product element
-	var dbp []dbproduct.DBProduct
+	var dbp []dbproduct.Product
 	if err := db.First(&dbp).Error; err == nil {
 		e := echo.New()
 
@@ -439,7 +465,7 @@ func TestFailUpdateProductNoAdmin(t *testing.T) {
 			assert.NotEqual(t, jpIn.Title, jp.Title)
 		}
 	}
-	//tier down
+	//teardown
 	deleteDBRecord(t, dbp[0].ProductID)
 }
 func TestFailUpdateProductNoID(t *testing.T) {
@@ -476,7 +502,7 @@ func TestDeleteProduct(t *testing.T) {
 	TestCreateProduct(t)
 
 	//find in DB first created product element
-	var dbp []dbproduct.DBProduct
+	var dbp []dbproduct.Product
 	if err := db.First(&dbp).Error; err == nil {
 		e := echo.New()
 		req := httptest.NewRequest(http.MethodDelete, "/", bytes.NewReader(nil))
@@ -525,4 +551,72 @@ func TestDeleteProduct(t *testing.T) {
 			assert.Equal(t, jp.Reason, "No such Product ID")
 		}
 	}
+}
+
+func Test_createProductStatusBadRequest(t *testing.T) {
+	// Setup
+	e := echo.New()
+	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{"id":1, "second":"third"}`))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetPath("/product")
+
+	// Assertions
+	if assert.NoError(t, createProduct(c)) {
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+		var jp struct {
+			ID, Status, Reason string
+		}
+		if err := json.Unmarshal(rec.Body.Bytes(), &jp); err != nil {
+			log.Trace("TestDeleteProduct json.Unmarshal(rec.Body.Bytes()) sais error - ", err.Error())
+		}
+
+		assert.Equal(t, jp.Status, "fail")
+
+	}
+}
+
+func Test_updateProductStatusBadRequest(t *testing.T) {
+	//Setup
+	TestCreateProduct(t)
+
+	//find in DB first created product element
+	var dbp []dbproduct.Product
+	if err := db.First(&dbp).Error; err == nil {
+		e := echo.New()
+
+		jpIn.ID = dbp[0].ProductID
+		log.Trace("TestUpdateProduct jpIn - ", jpIn)
+		junk := []byte{234, 234, 222, 234, 234, 234}
+		junk = append(junk, jpIn.JSON()...)
+		req := httptest.NewRequest(http.MethodPut, "/", bytes.NewReader(junk))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		req.Header.Set("User", "admin")
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+
+		c.SetPath("/product")
+		c.SetParamNames("id")
+		c.SetParamValues(dbp[0].ProductID)
+
+		log.Trace("TestUpdateProduct ID of product - ", fmt.Sprintf("/product/%s", dbp[0].ProductID))
+		if assert.NoError(t, updateProduct(c)) {
+			assert.Equal(t, http.StatusBadRequest, rec.Code)
+			assert.NotEmpty(t, rec.Body.Bytes())
+			log.Trace("TestUpdateProduct request - ", rec.Body.String())
+			var jp struct {
+				ID, Status, Reason string
+			}
+			if err := json.Unmarshal(rec.Body.Bytes(), &jp); err != nil {
+				log.Trace("TestUpdateProduct json.Unmarshal(rec.Body.Bytes()) sais error - ", err.Error())
+			}
+			assert.Equal(t, jp.ID, dbp[0].ProductID)
+			assert.Equal(t, jp.Status, "fail")
+		}
+
+	}
+	//teardown
+	deleteDBRecord(t, dbp[0].ProductID)
 }

@@ -7,11 +7,10 @@ import (
 	jproduct "web-store/view_json"
 
 	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
 )
 
-// DBProduct describe GORM object to put to SQLite3 DB
-type DBProduct struct {
+// Product describe GORM object to put to SQLite3 DB
+type Product struct {
 	gorm.Model
 	ProductID          string    `gorm:"type:TEXT;UNIQUE_INDEX;NOT NULL"`
 	URL                string    `gorm:"type:TEXT"`
@@ -21,10 +20,19 @@ type DBProduct struct {
 	ImgURL             string    `gorm:"type:TEXT"`
 	ProductCreatedAt   time.Time `gorm:"type:datetime"`
 	ProductLastTrackAt time.Time `gorm:"type:datetime"`
+	RawLastCall        time.Time `gorm:"type:datetime"`
 }
 
-func NewDBProductFromJProduct(jp *jproduct.JProduct) DBProduct {
-	var db DBProduct
+// Users describe User accounts
+type Users struct {
+	gorm.Model
+	User string `gorm:"type:TEXT"`
+	Role string `gorm:"type:TEXT"`
+}
+
+//NewDBProductFromJProduct creates db.Product from view_json.Product
+func NewDBProductFromJProduct(jp *jproduct.JProduct) Product {
+	var db Product
 	p := product.NewProductFromJProduct(jp)
 	db.ProductID = p.ID()
 	db.URL = p.URL()
@@ -34,10 +42,12 @@ func NewDBProductFromJProduct(jp *jproduct.JProduct) DBProduct {
 	db.ImgURL = p.ImgURL()
 	db.ProductCreatedAt = p.CreatedAt()
 	db.ProductLastTrackAt = p.LastTrackAt()
+	db.RawLastCall = time.Now()
 	return db
 }
 
-func (db *DBProduct) JProduct() jproduct.JProduct {
+//JProduct return view_json.JProduct object
+func (db *Product) JProduct() jproduct.JProduct {
 	var jp jproduct.JProduct
 
 	jp.ID = db.ProductID
@@ -48,6 +58,6 @@ func (db *DBProduct) JProduct() jproduct.JProduct {
 	jp.ImgURL = db.ImgURL
 	jp.CreatedAt = db.ProductCreatedAt.Format(time.RFC3339)
 	jp.LastTrackAt = db.ProductLastTrackAt.Format(time.RFC3339)
-
+	db.RawLastCall = time.Now()
 	return jp
 }

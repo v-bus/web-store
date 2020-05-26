@@ -76,7 +76,7 @@ type (
  *	}
  *
  * @apiExample {curl} cURL Example  usage:
- *    curl -X POST -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" -d '{"url":"http://shop.com/ipad","title":"IPad","price":"12.00","currency":"RUB","img_url":"http://shop.com/images/ipad.jpg"}' "http://api.example.com/product/"
+ *    curl -X POST -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" -d '{"url":"http://shop.com/ipad","title":"IPad","price":"12.00","currency":"RUB","img_url":"http://shop.com/images/ipad.jpg"}' "http://api.example.com/product"
  *
  * @apiUse ReqHeaders
  * @apiDescription Create new product
@@ -108,7 +108,7 @@ func createProduct(c echo.Context) error {
 	log.Traceln("New jProduct img_url", jp.ImgURL)
 	log.Traceln("New jProduct createdAt", jp.CreatedAt)
 	log.Traceln("New jProduct lastTrackAt", jp.LastTrackAt)
-
+	defer recovery(c)
 	// Bind jProduct
 	if err := c.Bind(jp); err != nil {
 		log.Warnln("getProduct returns ", err)
@@ -117,7 +117,7 @@ func createProduct(c echo.Context) error {
 			Status: "fail",
 			Reason: err.Error(),
 		}
-		return c.JSON(http.StatusInternalServerError, f)
+		return c.JSON(http.StatusBadRequest, f)
 	}
 	// Trace
 	log.Traceln("Binded jProduct id ", jp.ID)
@@ -143,6 +143,7 @@ func createProduct(c echo.Context) error {
 	log.Traceln("DB ", db)
 	defer recovery(c)
 	dbp.DeletedAt = nil
+	dbp.RawLastCall = time.Now()
 	// Create DB record
 	if err := db.Create(&dbp).GetErrors(); len(err) > 0 {
 		for _, emsg := range err {
@@ -203,7 +204,7 @@ func getProduct(c echo.Context) error {
 		Status: "error",
 		Reason: "No such Product ID",
 	}
-	dp := new(dbproduct.DBProduct)
+	dp := new(dbproduct.Product)
 	defer recovery(c)
 	//SELECT
 	if err := db.Where("product_id = ?", id).First(dp).Error; err != nil {
@@ -267,7 +268,7 @@ func getAllProducts(c echo.Context) error {
 	}
 	defer recovery(c)
 
-	var res []dbproduct.DBProduct
+	var res []dbproduct.Product
 	if err := db.Find(&res).Error; err == nil {
 		log.Traceln("getAllProduct result DBProduct{} array is ", res)
 		log.Traceln("getAllProduct result DBProduct{} array length is ", len(res))
@@ -350,7 +351,7 @@ func updateProduct(c echo.Context) error {
 	if header := c.Request().Header; len(header["User"]) <= 0 {
 		log.Warnln("Header User not found")
 		return c.JSON(http.StatusForbidden, errorMsg{ID: c.Param("id"), Status: "error", Reason: "No user specified"})
-	} else if header["User"][0] != "admin" {
+	} else if a := getUsersByRole("admin"); len(a) > 0 && header["User"][0] != a[0] {
 		log.Warnln("User is not admin")
 		return c.JSON(http.StatusForbidden, errorMsg{ID: c.Param("id"), Status: "error", Reason: "Only admin can update product"})
 	}
@@ -358,11 +359,17 @@ func updateProduct(c echo.Context) error {
 	id := c.Param("id")
 	jp.ID = id
 	if err := c.Bind(jp); err != nil {
-		log.Warn(err)
-		return err
+
+		log.Warnln("updateProduct returns ", err)
+		f := errorMsg{
+			ID:     jp.ID,
+			Status: "fail",
+			Reason: err.Error(),
+		}
+		return c.JSON(http.StatusBadRequest, f)
 	}
 
-	dp := new(dbproduct.DBProduct)
+	dp := new(dbproduct.Product)
 	defer recovery(c)
 	if err := db.Where("product_id == ?", id).First(dp).Error; err != nil {
 		log.Warnln("updateProduct DB said ", err)
@@ -375,7 +382,8 @@ func updateProduct(c echo.Context) error {
 	}
 
 	jdp := dbproduct.NewDBProductFromJProduct(jp)
-	if err := db.Model(&dbproduct.DBProduct{}).Omit(
+	jdp.RawLastCall = time.Now()
+	if err := db.Model(&dbproduct.Product{}).Omit(
 		"product_id",
 		"created_at",
 		"deleted_at",
@@ -427,7 +435,7 @@ func updateProduct(c echo.Context) error {
 func deleteProduct(c echo.Context) error {
 	id := c.Param("id")
 	defer recovery(c)
-	dp := new(dbproduct.DBProduct)
+	dp := new(dbproduct.Product)
 	if err := db.Where("product_id == ?", id).First(dp).Error; err != nil {
 		e := errorMsg{
 			ID:     id,

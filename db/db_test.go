@@ -18,7 +18,7 @@ var jpIn = jproduct.JProduct{
 	ImgURL:      "http://shop.com/image/title.jpg",
 	CreatedAt:   "2020-05-20T10:10:01Z",
 	LastTrackAt: "2020-05-20T10:10:01Z"}
-var dbpIn = DBProduct{
+var dbpIn = Product{
 	ProductID: "f332e9ed-9392-11ea-98dd-0242ac110002",
 	URL:       "http://shop.com/title",
 	Title:     "Title",
