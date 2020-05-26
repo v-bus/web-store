@@ -1,9 +1,13 @@
-package view_json
+package viewjson
+
 import (
-	log "github.com/sirupsen/logrus"
 	"encoding/json"
+
+	log "github.com/sirupsen/logrus"
 )
+
 type (
+	//JProduct contains json implementation of product
 	JProduct struct {
 		ID          string `json:"id"`
 		URL         string `json:"url"`
@@ -16,7 +20,7 @@ type (
 	}
 )
 
-//returns jProduct to JSON Marshalling
+//JSON returns jProduct to JSON Marshalling
 func (jp *JProduct) JSON() []byte {
 	b, e := json.Marshal(jp)
 	if e != nil {
@@ -24,4 +28,3 @@ func (jp *JProduct) JSON() []byte {
 	}
 	return b
 }
-

@@ -1,4 +1,4 @@
-package view_json
+package viewjson
 
 import (
 	"testing"

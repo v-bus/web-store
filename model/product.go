@@ -36,7 +36,7 @@ type (
 	Product product
 )
 
-// Creates new product struct
+// New Creates new product struct
 // only id, createdAt, last_track_at
 func New() Product {
 	var e error
@@ -51,6 +51,7 @@ func New() Product {
 	return p
 }
 
+//NewProductFromJProduct creates Product from viewjson.JProduct
 func NewProductFromJProduct(jp *jproduct.JProduct) Product {
 	var p product
 	var e error
@@ -119,7 +120,7 @@ func parseTime(jTime string) time.Time {
 	return t
 }
 
-//returns JSON Product  JSON Marshalled Product
+//JSON returns JSON Product  JSON Marshalled Product
 func (p Product) JSON() []byte {
 	var jp jproduct.JProduct
 	jp.ID = p.id.String()
@@ -134,34 +135,42 @@ func (p Product) JSON() []byte {
 	return jp.JSON()
 }
 
+//ID returns ID
 func (p *Product) ID() string {
 	return p.id.String()
 }
 
+//URL returns URL
 func (p *Product) URL() string {
 	return p.url
 }
 
+//Title returns Title
 func (p *Product) Title() string {
 	return p.title
 }
 
+//Price returns Price
 func (p *Product) Price() string {
 	return p.price.StringFixed(2)
 }
 
+//Currency returns Currency
 func (p *Product) Currency() string {
 	return p.currency.String()
 }
 
+//ImgURL returns ImgURL
 func (p *Product) ImgURL() string {
 	return p.imgURL
 }
 
+//CreatedAt returns CreatedAt date and time
 func (p *Product) CreatedAt() time.Time {
 	return p.createdAt
 }
 
+//LastTrackAt returns LastTrackAt of the product in date and time
 func (p *Product) LastTrackAt() time.Time {
 	return p.lastTrackAt
 }

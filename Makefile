@@ -6,6 +6,8 @@ PKG_LIST := $(shell go list ${PKG}/... | grep -v /vendor/)
 GO_FILES := $(shell find . -name '*.go' | grep -v /vendor/)
 
 all: run
+test: 
+	go test ./...
 
 server:
 	go build -i -v -o ${OUT} -ldflags="-X main.version=${VERSION}"

@@ -4,11 +4,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-//should be DB logging
+//Logging should be DB logging
 const Logging = false
 
-//logrus defualt loglevel
-const Log_level = log.InfoLevel
+//LogLevel logrus defualt loglevel
+const LogLevel = log.InfoLevel
 
-//web-store DB name
+//DBFileName web-store DB name
 const DBFileName = "store.db"
