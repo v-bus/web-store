@@ -7,13 +7,6 @@
 1. GET /product/all Show product list
 1. PUT /product/:id Update product information (admin user only)
 
-## Possible errors
-
-1. 403 Unauthorized
-1. 200 "No such Product ID"
-1. 403 "No user specified"
-1. 403 "Only admin can update product"
-
 ## DOC
 
 see [doc](https://v-bus.github.io/web-store/)
@@ -28,6 +21,24 @@ see [doc](https://v-bus.github.io/web-store/)
 
 ```bash
 ln -s $WORKSPACE/web-store $GOROOT/web-store
-cd dev-06/go/web-store
-go build ./...
+cd web-store
+make static
+```
+
+## migration tool
+
+You can update your current DB by [migration tool](web-store-db-migrate)
+
+To build migration tool
+
+```bash
+cd web-store-db-migrate
+make server
+```
+
+To run migration tool
+
+```bash
+cd web-store
+./web-store-db-migrate-bin
 ```
